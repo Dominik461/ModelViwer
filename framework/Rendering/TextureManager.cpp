@@ -94,6 +94,51 @@ bool TextureManager::LoadCubeMapRGBA(const std::string& name, const std::string&
     return true;
 }
 
+bool TextureManager::LoadCubeMapArrayRGBA(const std::string& name, std::string& filePath, std::array<std::string, 6> files, GLuint unit, bool mipMap)
+{
+    int width, height, bpp;
+
+    /*Generate a texture object and upload the loaded image to it.*/
+    GLuint tex;
+    glGenTextures(1, &tex);
+    glActiveTexture(GL_TEXTURE0 + unit); // Texture Unit
+    glBindTexture(GL_TEXTURE_CUBE_MAP, tex);
+
+    for (unsigned int i = 0; i < 6; i++) {
+
+        auto data = this->LoadTextureImage(filePath + files[i], width, height, bpp, STBI_rgb_alpha);
+        glTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X + i, 0, GL_RGBA8, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, data);
+
+        if (mipMap)
+        {
+            glGenerateMipmap(GL_TEXTURE_2D);
+        }
+
+
+        Texture texture;
+        texture.mipMap = mipMap;
+        texture.width = width;
+        texture.height = height;
+        texture.name = name;
+        texture.filePath = filePath;
+        texture.unit = unit;
+        texture.type = CubeMap;
+
+        this->Textures.push_back(texture);
+        this->FreeTextureImage(data);
+    }
+
+    // Wrapping
+    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
+    // Filtering
+    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+
+    return true;
+}
+
 
 GLuint TextureManager::GetUnitByName(const std::string& name) const
 {

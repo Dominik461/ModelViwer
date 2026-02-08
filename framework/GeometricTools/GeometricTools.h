@@ -16,6 +16,17 @@
 
 namespace GeometricTools
 {
+    inline std::array<float, 3 * 2 * 6> axisVertices = {
+        // positions        // colors
+         0.f, 0.f, 0.f,     1.f, 0.f, 0.f,  // X axis (red)
+         1.f, 0.f, 0.f,     1.f, 0.f, 0.f,
+
+         0.f, 0.f, 0.f,     0.f, 1.f, 0.f,  // Y axis (green)
+         0.f, 1.f, 0.f,     0.f, 1.f, 0.f,
+
+         0.f, 0.f, 0.f,     0.f, 0.f, 1.f,  // Z axis (blue)
+         0.f, 0.f, 1.f,     0.f, 0.f, 1.f
+    };
 
 
     inline std::array<float, 3 * 2> UnitTriangle2D = {
@@ -180,7 +191,7 @@ namespace GeometricTools
 
         std::array<float, 11 * 4 * 6> VBO = {
             // FRONT FACE (normal: 0, 0, 1)
-            // Positions                           // Normals           // T.C.        // Color
+            // Positions          // Normals           // T.C.      // Color
             -0.5f, -0.5f,  0.5f,  0.0f,  0.0f,  1.0f,  0.0f, 0.0f,  r, g, b,  // Bottom-left
              0.5f, -0.5f,  0.5f,  0.0f,  0.0f,  1.0f,  1.0f, 0.0f,  r, g, b,  // Bottom-right
              0.5f,  0.5f,  0.5f,  0.0f,  0.0f,  1.0f,  1.0f, 1.0f,  r, g, b,  // Top-right

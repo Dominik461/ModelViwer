@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.15)
 
-project(EXAM_AUTUMN_2025_DOMINIK_MUELLER)
+project(MODEL_VIEWER)
 
 set(CMAKE_CXX_STANDARD 17)
 
@@ -25,6 +25,9 @@ add_subdirectory(external/glad)
 add_subdirectory(external/glfw)
 add_subdirectory(external/glm)
 add_subdirectory(framework)
+add_subdirectory(modelviewer)
+add_subdirectory(modelviewer/src)
+add_subdirectory(modelviewer/src/shaders)
 
 
 add_library(stb INTERFACE)
