@@ -1,15 +1,21 @@
 #ifndef MODELVIEWER_H_
 #define MODELVIEWER_H_
 
+
+
 #include "GLFWApplication.h"
 #include "GeometricTools.h"
 #include "PerspectiveCamera.h"
 #include "MatrixOperations.h"
 #include "glm/glm.hpp"
 #include "TextureManager.h"
-#include <VertexArray.h>
+#include "VertexArray.h"
 #include "renderer.h"
+#include "util.h"
+#include "drawcall.h"
 #include <iostream>
+#include <filesystem>
+#include <string>
 
 enum RotationAxis
 {
@@ -33,9 +39,10 @@ private:
 	std::unique_ptr<Renderer> m_renderer;
 
 	PerspectiveCamera m_camera;
-	const glm::vec3 m_CAMERA_POS = glm::vec3(0.0f, 0.0f, 11.0f);
+	const glm::vec3 m_CAMERA_POS = glm::vec3(0.0f, 0.0f, 200.0f);
 
 	std::shared_ptr<VertexArray> m_modelData;
+    std::vector<DrawCall> modelDrawCalls;
 	std::shared_ptr<VertexArray> m_skyboxData;
 
 	glm::vec3 modelPos = glm::vec3(0);
@@ -120,5 +127,12 @@ private:
 	static void keyCallback(GLFWwindow* window, int key, int scancode, int action, int mods);
 
 	void rotateModel(double rotateAmountX, double rotateAmountY);
+
+    void loadCustomModel(std::string path);
+
+    std::string findObiFile(std::string path);
+
+    void SanitizeObjAndMtlFilenames(const fs::path& objPath);
+    void SanitizeMtlTextureFilenames(const fs::path& mtlPath);
 };
 #endif // !MODELVIEWER_H_

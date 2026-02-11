@@ -1,8 +1,8 @@
 add_library(ModelViewerLib
-    model_loder.cpp model_loder.h
+     
     renderer.cpp renderer.h
     model_viewer.cpp model_viewer.h
-)
+ "util.h"  "drawcall.h")
 
 # Include directories for the library
 target_include_directories(ModelViewerLib PUBLIC
@@ -20,6 +20,7 @@ target_link_libraries(ModelViewerLib
     Rendering
     Projection
     Shaders
+    TinyObjLoader
     glad
     glfw
     stb
