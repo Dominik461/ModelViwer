@@ -10,3 +10,6 @@
 [submodule "external/glad"]
 	path = external/glad
 	url = https://gitlab.com/prog2002/glad.git
+[submodule "external/imgur"]
+	path = external/imgur
+	url = https://github.com/ocornut/imgui.git
