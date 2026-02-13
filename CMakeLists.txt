@@ -33,3 +33,32 @@ add_subdirectory(modelviewer/src/shaders)
 
 add_library(stb INTERFACE)
 target_include_directories(stb INTERFACE external/stb)
+
+set(IMGUI_DIR ${CMAKE_SOURCE_DIR}/external/imgui)
+
+add_library(imgui
+    ${IMGUI_DIR}/imgui.cpp
+    ${IMGUI_DIR}/imgui_draw.cpp
+    ${IMGUI_DIR}/imgui_tables.cpp
+    ${IMGUI_DIR}/imgui_widgets.cpp
+    ${IMGUI_DIR}/imgui_demo.cpp
+
+    # Backends:
+    ${IMGUI_DIR}/backends/imgui_impl_glfw.cpp
+    ${IMGUI_DIR}/backends/imgui_impl_opengl3.cpp
+)
+
+target_include_directories(imgui PUBLIC
+    ${IMGUI_DIR}
+    ${IMGUI_DIR}/backends
+)
+
+target_link_libraries(imgui PUBLIC glfw OpenGL::GL)
+
+add_library(tinyfiledialogs
+    external/tinyfiledialogs/tinyfiledialogs.cpp
+)
+
+target_include_directories(tinyfiledialogs PUBLIC
+    external/tinyfiledialogs
+)

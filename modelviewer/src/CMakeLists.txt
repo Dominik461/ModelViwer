@@ -2,7 +2,7 @@ add_library(ModelViewerLib
      
     renderer.cpp renderer.h
     model_viewer.cpp model_viewer.h
- "util.h"  "drawcall.h")
+ "util.h"  "drawcall.h" "material.h" "pointlight.h")
 
 # Include directories for the library
 target_include_directories(ModelViewerLib PUBLIC
@@ -25,6 +25,8 @@ target_link_libraries(ModelViewerLib
     glfw
     stb
     glm
+    imgui
+    tinyfiledialogs
 )
 
 target_compile_definitions(ModelViewerLib PRIVATE

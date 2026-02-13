@@ -2,14 +2,14 @@
 #include <iostream>
 
 Renderer::Renderer()
-	:m_tunnelShader(nullptr), m_skyboxShader(nullptr)
+	:m_modelShader(nullptr), m_skyboxShader(nullptr)
 {
 	init();
 }
 
 void Renderer::setupShaders()
 {
-	m_tunnelShader = std::make_shared<Shader>(TUNNEL_VERTEX_SHADER_SRC, TUNNEL_FRAGMENT_SHADER_SRC);
+	m_modelShader = std::make_shared<Shader>(MODEL_VERTEX_SHADER_SRC, MODEL_FRAGMENT_SHADER_SRC);
 	m_skyboxShader = std::make_shared<Shader>(SKYBOX_VERTEX_SHADER_SRC, SKYBOXL_FRAGMENT_SHADER_SRC);
 }
 
@@ -24,24 +24,57 @@ unsigned Renderer::init()
 
 unsigned Renderer::shutdown()
 {
-	m_tunnelShader->~Shader();
+	m_modelShader->~Shader();
 	return 0;
 }
 
-void Renderer::draw(glm::mat4 viewProjectionMat, glm::vec3 cameraPos, glm::vec3 lightPos, float lightMix, std::shared_ptr<VertexArray>  modelData, glm::mat4 modelMat, std::shared_ptr<VertexArray>  skyboxData, glm::mat4 skyboxMat)
+void Renderer::draw(glm::mat4 viewProjectionMat, glm::vec3 cameraPos, PointLight light, std::shared_ptr<VertexArray>  modelData, glm::mat4 modelMat, std::vector<Material> modelMaterials, std::vector<DrawCall> modelDrawCalls, std::shared_ptr<VertexArray>  skyboxData, glm::mat4 skyboxMat)
 {
 	RenderCommands::Clear();
 
-	uploadCommonUniforms(viewProjectionMat, lightPos, cameraPos, lightMix, modelMat, skyboxMat);
+	uploadCommonUniforms(viewProjectionMat, light, cameraPos, modelMat, skyboxMat);
 
 	renderSkybox(skyboxData);
-	renderModel(modelData);
+
+
+	m_modelShader->Bind();
+	modelData->Bind();
+	modelData->GetIndexBuffer()->Bind();
+	for (const DrawCall& dc : modelDrawCalls)
+	{
+		Material& mat = modelMaterials[dc.materialID];
+
+		m_modelShader->UploadUniformFloat3("u_MaterialDiffuse", mat.diffuse);
+		m_modelShader->UploadUniformFloat3("u_MaterialDiffuse", mat.diffuse);
+		m_modelShader->UploadUniformFloat3("u_MaterialDiffuse", mat.diffuse);
+
+		if (mat.diffuseTex != 0)
+		{
+			glActiveTexture(GL_TEXTURE0);
+			glBindTexture(GL_TEXTURE_2D, mat.diffuseTex);
+			m_modelShader->UploadUniformInt1("u_DiffuseTex", 0);
+			m_modelShader->UploadUniformInt1("u_HasTexture", true);
+		}
+		else
+		{
+			m_modelShader->UploadUniformInt1("u_HasTexture", false);
+		}
+
+		glDrawElements(
+			GL_TRIANGLES,
+			dc.indexCount,
+			GL_UNSIGNED_INT,
+			(void*)(dc.indexOffset * sizeof(unsigned int))
+		);
+	}
+	m_modelShader->Unbind();
+	//renderModel(modelData);
 
 }
 
 void Renderer::renderModel(std::shared_ptr<VertexArray> tunnelData)
 {
-	m_tunnelShader->Bind();
+	m_modelShader->Bind();
 	tunnelData->Bind();
 	tunnelData->GetIndexBuffer()->Bind();
 	// Uploading unifrom values for the border
@@ -50,7 +83,7 @@ void Renderer::renderModel(std::shared_ptr<VertexArray> tunnelData)
 
 	tunnelData->Unbind();
 
-	m_tunnelShader->Unbind();
+	m_modelShader->Unbind();
 }
 
 void Renderer::renderSkybox(std::shared_ptr<VertexArray> skyboxData)
@@ -67,19 +100,17 @@ void Renderer::renderSkybox(std::shared_ptr<VertexArray> skyboxData)
 	m_skyboxShader->Unbind();
 }
 
-void Renderer::uploadCommonUniforms(glm::mat4 viewProjectionMatrix, glm::vec3 lightPos, glm::vec3 viewPos, float lightMix, glm::mat4 modelMat, glm::mat4 skyboxMat)
+void Renderer::uploadCommonUniforms(glm::mat4 viewProjectionMatrix, PointLight light, glm::vec3 viewPos, glm::mat4 modelMat, glm::mat4 skyboxMat)
 {
-	m_tunnelShader->Bind();
-	m_tunnelShader->UploadUniformMat4("u_ViewProjection", viewProjectionMatrix);
-	m_tunnelShader->UploadUniformFloat3("u_LightColorDay", m_LIGHT_COLOR_DAY);
-	m_tunnelShader->UploadUniformFloat3("u_LightColorNight", m_LIGHT_COLOR_NIGHT);
-	m_tunnelShader->UploadUniformFloat3("u_LightPos", lightPos);
-	m_tunnelShader->UploadUniformFloat1("u_LightMix", lightMix);
-	m_tunnelShader->UploadUniformFloat1("u_AmbientStrength", m_AMBIENT_STRENGTH);
-	m_tunnelShader->UploadUniformFloat1("u_SpecularStrength", m_SPECULAR_STRENGTH);
-	m_tunnelShader->UploadUniformFloat3("u_ViewPosition", viewPos);
-	m_tunnelShader->UploadUniformMat4("u_Model", modelMat);
-	m_tunnelShader->Unbind();
+	m_modelShader->Bind();
+	m_modelShader->UploadUniformMat4("u_ViewProjection", viewProjectionMatrix);
+	m_modelShader->UploadUniformFloat3("u_LightColor", light.Color);
+	m_modelShader->UploadUniformFloat3("u_LightPos", light.Position);
+	m_modelShader->UploadUniformFloat1("u_AmbientStrength", m_AMBIENT_STRENGTH);
+	m_modelShader->UploadUniformFloat1("u_SpecularStrength", m_SPECULAR_STRENGTH);
+	m_modelShader->UploadUniformFloat3("u_ViewPosition", viewPos);
+	m_modelShader->UploadUniformMat4("u_Model", modelMat);
+	m_modelShader->Unbind();
 
 	m_skyboxShader->Bind();
 	m_skyboxShader->UploadUniformMat4("u_ViewProjection", viewProjectionMatrix);

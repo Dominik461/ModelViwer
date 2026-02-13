@@ -19,6 +19,7 @@ public:
 
     struct Texture
     {
+        GLuint id;
         bool mipMap;
         int width, height, bpp;
         std::string name;
@@ -35,6 +36,7 @@ public:
 
 public:
     bool LoadTexture2DRGBA(const std::string& name, const std::string& filepath, GLuint unit, bool mipMap = true);
+    GLuint LoadModelTexture2DRGBA( const std::string& filepath, bool mipMap = true);
     bool LoadCubeMapRGBA(const std::string& name, const std::string& filePath, GLuint unit, bool mipMap = true);
     bool LoadCubeMapArrayRGBA(const std::string& name,  std::string& filePath,  std::array<std::string, 6> files, GLuint unit, bool mipMap = true);
     GLuint GetUnitByName(const std::string& name) const;

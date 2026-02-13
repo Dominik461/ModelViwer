@@ -1,4 +1,5 @@
-﻿#define TINYOBJLOADER_IMPLEMENTATION
+﻿#include "model_viewer.h"
+#define TINYOBJLOADER_IMPLEMENTATION
 
 #include "model_viewer.h"
 #include "tiny_obj_loader.h"
@@ -9,7 +10,7 @@ tinyobj::ObjReader reader;
 
 
 ModelViewer::ModelViewer()
-    : GLFWApplication("Model Viewer", "1.0", 768, 1024), m_window(nullptr),
+    : GLFWApplication("Model Viewer", "1.0", 1080, 1920), m_window(nullptr),
     m_modelData(nullptr)
 {}
 
@@ -22,19 +23,28 @@ unsigned ModelViewer::init()
 {
     if (!getIsOpenGLInitialized())
         return 1;
-
+    
     m_window = getWindow();
     createCamera();
 
-    loadCube();
+    loadSkybox();
     glfwSetKeyCallback(m_window, keyCallback);
+    
     m_renderer = std::make_unique<Renderer>();
 
+    IMGUI_CHECKVERSION();
+    ImGui::CreateContext();
+    ImGuiIO& io = ImGui::GetIO(); (void)io;
+
+    ImGui::StyleColorsDark();
+
+    ImGui_ImplGlfw_InitForOpenGL(m_window, true);
+    ImGui_ImplOpenGL3_Init("#version 460");
+
+    createPointLight();
     TextureManager::GetInstance()->LoadCubeMapArrayRGBA("Skybox", std::string(TEXTURES_DIR), skyboxFiles, 0);
-    //loadCustomModel("F:\\Projects\\ModelViwer\\modelviewer\\resources\\models\\Hungarian Horntail");
-    loadCustomModel("F:\\Projects\\ModelViwer\\modelviewer\\resources\\models\\example");
-    //loadCustomModel("F:\\Projects\\ModelViwer\\modelviewer\\resources\\models\\Billy");
-    //loadCustomModel("F:\\Projects\\ModelViwer\\modelviewer\\resources\\models\\bmx");
+    loadCustomModel("F:\\Projects\\ModelViwer\\modelviewer\\resources\\models\\Hungarian Horntail");
+
     return 0;
 }
 
@@ -46,7 +56,75 @@ unsigned ModelViewer::run()
         m_deltaTime = time - m_lastFrameTime;
         m_lastFrameTime = time;
 
-        m_renderer->draw(m_camera.GetViewProjectionMatrix(), m_camera.GetPosition(), m_positionLight, m_lightMix, m_modelData, modelMatrix, m_skyboxData, skyboxMatrix);
+        ImGui_ImplOpenGL3_NewFrame();
+        ImGui_ImplGlfw_NewFrame();
+        ImGui::NewFrame();
+
+        ImGui::Begin("Controls");
+
+        ImGui::SetWindowSize(
+            ImVec2(
+                std::max(ImGui::GetWindowWidth(), 50.0f),
+                std::max(ImGui::GetWindowHeight(), 150.0f)
+            )
+        );
+
+        if (ImGui::Button("Select model"))
+        {
+            const char* folder = tinyfd_selectFolderDialog(
+                "Select Folder",
+                ""
+            );
+
+            if (folder)
+            {
+                // User selected a folder
+                std::string selectedPath = folder;
+                // Continue your logic here
+                loadCustomModel(selectedPath);
+            }
+        }
+
+        ImGui::Text("Camera controls");
+        if (ImGui::SliderFloat("Camera height", &camPosY, -3500.0f, 3500.0f))
+        {
+            m_camera.SetHeight(camPosY);
+        }
+        if (ImGui::SliderFloat("Camera distance", &camDistance, 10.0f, 5000.0f))
+        {
+            m_camera.SetDistance(camDistance);
+        }
+
+        ImGui::Text("Light controls");
+        if (ImGui::SliderFloat("Light height", &light.Height, -3500.0f, 3500.0f))
+        {
+            UpdateLight();
+        }
+        if(ImGui::SliderFloat("Light distance", &light.Radius, 10.0f, 5000.0f))
+        {
+            UpdateLight();
+        }
+        if(ImGui::ColorEdit3("Light color", glm::value_ptr(light.Color)))
+        {
+            UpdateLight();
+        }
+
+        ImGui::Text("Shader controls");
+        ImGui::Text("Set light angle");
+        ImGui::Text("Set light angle");
+        ImGui::Text("Set light angle");
+        ImGui::End();
+
+        ImGui::Render();
+
+        m_cam_pos.y = camPosY;
+        
+
+        scaleSkybox();
+
+        m_renderer->draw(m_camera.GetViewProjectionMatrix(), m_camera.GetPosition(), light, m_modelData, modelMatrix, m_materials, modelDrawCalls, m_skyboxData, skyboxMatrix);
+
+        ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
 
         // Swap buffers and poll events
         glfwSwapBuffers(m_window);
@@ -59,39 +137,37 @@ unsigned ModelViewer::run()
 void ModelViewer::shutdown()
 {
     m_renderer->shutdown();
+    ImGui_ImplOpenGL3_Shutdown();
+    ImGui_ImplGlfw_Shutdown();
+    ImGui::DestroyContext();
 }
 
 void ModelViewer::createCamera()
 {
     float fov = 45.0f;
     float nearPlane = 1.0f;
-    float farPlane = 5000.0f;
+    float farPlane = 20000.0f;
 
     glm::vec3 ori = { 0, 0, 0 };
     glm::vec3 up = { 0, 1, 0 };
 
-    m_camera = PerspectiveCamera({ fov, float(WINDOW_WIDTH) , float(WINDOW_HEIGHT), nearPlane, farPlane }, m_CAMERA_POS, ori, up);
+    m_camera = PerspectiveCamera({ fov, float(WINDOW_WIDTH) , float(WINDOW_HEIGHT), nearPlane, farPlane }, m_cam_pos, ori, up);
+    m_camera.SetDistance(camDistance);
 }
 
-void ModelViewer::loadCube()
+void ModelViewer::createPointLight()
 {
-    auto data = GeometricTools::GetUnitCube3D();
+    light = PointLight();
+    light.Angle = 0.0f;
+    light.AngularSpeed = 100.0f;
+    light.Color = glm::vec3(1.0f);
+    light.Height = 25.f;
+    light.Radius = 15.f;
+    UpdateLight();
+}
 
-    auto& verticesData = data.first;
-    auto& indicesData = data.second;
-
-//    std::shared_ptr<IndexBuffer> IBO = std::make_shared<IndexBuffer>(indicesData.data(), indicesData.size());
-//
-//    BufferLayout commomLayout = BufferLayout({ {ShaderDataType::Float3, "position"}, {ShaderDataType::Float3, "normals"}, {ShaderDataType::Float2, "tcoords"}, {ShaderDataType::Float3, "color"}});
-//    std::shared_ptr<VertexBuffer> VBO = std::make_shared<VertexBuffer>(verticesData.data(), verticesData.size() * sizeof(verticesData[0]));
-//    VBO->SetLayout(commomLayout);
-//
-//    m_modelData = std::make_shared<VertexArray>();
-//    m_modelData->Bind();
-//    m_modelData->SetIndexBuffer(IBO);
-//    m_modelData->AddNormalVertexBuffer(VBO);
-
-
+void ModelViewer::loadSkybox()
+{
     auto& verticesDataSky = GeometricTools::UnitCube3DVertices;
     auto& indicesDataSky = GeometricTools::UnitCube3DIndices;
 
@@ -106,9 +182,15 @@ void ModelViewer::loadCube()
     m_skyboxData->SetIndexBuffer(IBOskybox);
     m_skyboxData->AddNormalVertexBuffer(VBOskybox);
 
+    scaleSkybox();
+}
+
+void ModelViewer::scaleSkybox()
+{
     glm::vec3 rotationVec = glm::vec3(0.0f, 1.0f, 0.0f);
-    glm::vec3 scaleVec = glm::vec3(4999.0f);
-    skyboxMatrix *= MatrixOperations::getTransformedMatrix(scaleVec, rotationVec, 0, modelPos);
+    float scaleVal = camDistance + 10000.0f;
+    glm::vec3 scaleVec = glm::vec3(scaleVal);
+    skyboxMatrix = MatrixOperations::getTransformedMatrix(scaleVec, rotationVec, 0, modelPos);
 }
 
 void ModelViewer::keyCallback(GLFWwindow* window, int key, int scancode, int action, int mods)
@@ -121,43 +203,82 @@ void ModelViewer::keyCallback(GLFWwindow* window, int key, int scancode, int act
     double rotateAmountY = 0;
 
     // Left
-    if (key == GLFW_KEY_LEFT || key == GLFW_KEY_A)
+    if (key == GLFW_KEY_Q)
     {
-        rotateAmountY -= viewer->ROTATION_SPEED;
+        viewer->modelAngleX -= viewer->ROTATION_SPEED;
     }
     // Right
-    if (key == GLFW_KEY_RIGHT || key == GLFW_KEY_D)
+    if (key == GLFW_KEY_W)
     {
-        rotateAmountY += viewer->ROTATION_SPEED;
+        viewer->modelAngleX += viewer->ROTATION_SPEED;
     }
     // Up
-    if (key == GLFW_KEY_UP || key == GLFW_KEY_W)
+    if (key == GLFW_KEY_A)
     {
-        rotateAmountX -= viewer->ROTATION_SPEED;
+        viewer->modelAngleY -= viewer->ROTATION_SPEED;
     }
     // Down
-    if (key == GLFW_KEY_DOWN || key == GLFW_KEY_S)
+    if (key == GLFW_KEY_S)
     {
-        rotateAmountX += viewer->ROTATION_SPEED;
+        viewer->modelAngleY += viewer->ROTATION_SPEED;
+    }
+    // Up
+    if (key == GLFW_KEY_Z)
+    {
+        viewer->modelAngleZ -= viewer->ROTATION_SPEED;
+    }
+    // Down
+    if (key == GLFW_KEY_X)
+    {
+        viewer->modelAngleZ += viewer->ROTATION_SPEED;
+    }
+    // Up
+    if (key == GLFW_KEY_N)
+    {
+        viewer->m_camera.AddYaw(-1000.f * viewer->m_deltaTime);
+    }
+    // Down
+    if (key == GLFW_KEY_M)
+    {
+        viewer->m_camera.AddYaw(1000.f * viewer->m_deltaTime);
+    }
+    // Up
+    if (key == GLFW_KEY_LEFT)
+    {
+        viewer->light.Angle -= viewer->ROTATION_SPEED;
+        viewer->UpdateLight();
+    }
+    // Down
+    if (key == GLFW_KEY_RIGHT)
+    {
+        viewer->light.Angle += viewer->ROTATION_SPEED;
+        viewer->UpdateLight();
     }
 
-    viewer->rotateModel(rotateAmountX, rotateAmountY);
+    viewer->rotateModel();
 }
 
-void ModelViewer::rotateModel(double rotateAmountX, double rotateAmountY)
+void ModelViewer::rotateModel()
 {
-    glm::vec3 rotationVec;
-    double x = rotateAmountX * sensitvity;
-    double y = rotateAmountY * sensitvity;
+    glm::mat4 rotation = glm::mat4(1.0f);
+    rotation = glm::rotate(rotation, modelAngleX, glm::vec3(1, 0, 0));
+    rotation = glm::rotate(rotation, modelAngleY, glm::vec3(0, 1, 0));
+    rotation = glm::rotate(rotation, modelAngleZ, glm::vec3(0, 0, 1));
 
-    rotationVec = glm::vec3(0.0f, 1.0f, 0.0f);
-    modelMatrix *= MatrixOperations::getTransformedMatrix(modelScale, rotationVec, y, modelPos);
+    glm::mat4 translation = glm::translate(glm::mat4(1.0f), modelPos);
 
-    rotationVec = glm::vec3(1.0f, 0.0f, 0.0f);
+    modelMatrix = translation * rotation;
+}
 
-    modelMatrix *= MatrixOperations::getTransformedMatrix(modelScale, rotationVec, x, modelPos);
+void ModelViewer::UpdateLight()
+{
+    light.Angle += light.AngularSpeed * m_deltaTime;
 
-    std::cout << "rotateAmountX: " << x << " rotateAmountY: " << y << std::endl;
+    float rad = glm::radians(light.Angle);
+
+    light.Position.x = light.Radius * sin(rad);
+    light.Position.z = light.Radius * cos(rad);
+    light.Position.y = light.Height;
 }
 
 void ModelViewer::loadCustomModel(std::string path)
@@ -169,8 +290,7 @@ void ModelViewer::loadCustomModel(std::string path)
 
     if (objPath != "")
     {
-        bool hasNormals = true;
-        bool hasTexcords = true;
+        m_modelData = nullptr;
 
         std::vector<float> vertices = std::vector<float>();
         std::vector<unsigned int> indices = std::vector<unsigned int>();
@@ -197,12 +317,18 @@ void ModelViewer::loadCustomModel(std::string path)
         auto& shapes = reader.GetShapes();
         auto& materials = reader.GetMaterials();
 
+        std::unordered_map<int, std::vector<unsigned int>> materialIndexMap;
+
         // Loop over shapes
         for (size_t s = 0; s < shapes.size(); s++) {
             // Loop over faces(polygon)
             size_t index_offset = 0;
             for (size_t f = 0; f < shapes[s].mesh.num_face_vertices.size(); f++) {
                 size_t fv = size_t(shapes[s].mesh.num_face_vertices[f]);
+
+                int materialID = shapes[s].mesh.material_ids[f];
+                if (materialID < 0)
+                    materialID = 0; // fallback
 
                 // Loop over vertices in the face.
                 for (size_t v = 0; v < fv; v++) {
@@ -214,36 +340,46 @@ void ModelViewer::loadCustomModel(std::string path)
                     vertices.insert(vertices.end(), { vx, vy, vz });
 
                     // Check if `normal_index` is zero or positive. negative = no normal data
-                    if (idx.normal_index >= 0 && hasNormals) {
+                    if (idx.normal_index >= 0) {
                         tinyobj::real_t nx = attrib.normals[3 * size_t(idx.normal_index) + 0];
                         tinyobj::real_t ny = attrib.normals[3 * size_t(idx.normal_index) + 1];
                         tinyobj::real_t nz = attrib.normals[3 * size_t(idx.normal_index) + 2];
                         vertices.insert(vertices.end(), { nx, ny, nz });
                     }
-                    else if (hasNormals)
+                    else
                     {
                         std::cout << "NO NORMALS" << std::endl;
-                        hasNormals = false;
+                        // TODO POST CALCULATION
+                        vertices.insert(vertices.end(), { 0.f, 0.f, 1.f });
                     }
 
                     // Check if `texcoord_index` is zero or positive. negative = no texcoord data
-                    if (idx.texcoord_index >= 0 && hasTexcords) {
+                    if (idx.texcoord_index >= 0) {
                         tinyobj::real_t tx = attrib.texcoords[2 * size_t(idx.texcoord_index) + 0];
                         tinyobj::real_t ty = attrib.texcoords[2 * size_t(idx.texcoord_index) + 1];
                         vertices.insert(vertices.end(), { tx, ty });
                     }
-                    else if (hasTexcords)
+                    else
                     {
                         std::cout << "NO TEXCOORDS" << std::endl;
-                        hasTexcords = false;
+                        vertices.insert(vertices.end(), { 0.f, 0.f });
                     }
 
-                    tinyobj::real_t red   = attrib.colors[3*size_t(idx.vertex_index)+0];
-                    tinyobj::real_t green = attrib.colors[3*size_t(idx.vertex_index)+1];
-                    tinyobj::real_t blue  = attrib.colors[3*size_t(idx.vertex_index)+2];
-                    vertices.insert(vertices.end(), { red, green, blue });
+                    if (!attrib.colors.empty())
+                    {
+                        tinyobj::real_t red = attrib.colors[3 * size_t(idx.vertex_index) + 0];
+                        tinyobj::real_t green = attrib.colors[3 * size_t(idx.vertex_index) + 1];
+                        tinyobj::real_t blue = attrib.colors[3 * size_t(idx.vertex_index) + 2];
+                        vertices.insert(vertices.end(), { red, green, blue });
+                    }
+                    else
+                    {
+                        vertices.insert(vertices.end(), { 1.f, 1.f, 1.f });
+                    }
 
-                    indices.insert(indices.end(), index);
+                    indices.push_back(index);
+                    materialIndexMap[materialID].push_back(index);
+
                     index++;
                 }
                 index_offset += fv;
@@ -259,30 +395,53 @@ void ModelViewer::loadCustomModel(std::string path)
         std::cout << "shapes: " << shapes.size() << std::endl;
         std::cout << "materials: " << materials.size() << std::endl;
 
+        std::vector<unsigned int> finalIndices;
+        unsigned int offset = 0;
+
+        for (auto& [matID, matIndices] : materialIndexMap)
+        {
+            DrawCall dc;
+            dc.indexOffset = offset;
+            dc.indexCount = matIndices.size();
+            dc.materialID = matID;
+
+            modelDrawCalls.push_back(dc);
+
+            finalIndices.insert(finalIndices.end(),
+                matIndices.begin(),
+                matIndices.end());
+
+            offset += matIndices.size();
+        }
+
+        m_materials.clear();
+        for (const auto& mat : materials)
+        {
+            Material m;
+
+            m.diffuse = glm::vec3(mat.diffuse[0], mat.diffuse[1], mat.diffuse[2]);
+            m.specular = glm::vec3(mat.specular[0], mat.specular[1], mat.specular[2]);
+            m.ambient = glm::vec3(mat.ambient[0], mat.ambient[1], mat.ambient[2]);
+            m.shininess = mat.shininess;
+
+            if (!mat.diffuse_texname.empty())
+            {
+                stbi_set_flip_vertically_on_load(true);
+                std::string fullPath = path + "/" + mat.diffuse_texname;
+                m.diffuseTex = TextureManager::GetInstance()->LoadModelTexture2DRGBA(fullPath, true);
+            }
+
+            m_materials.push_back(m);
+        }
+
+
         BufferLayout commomLayout;
 
-        if (hasNormals && hasTexcords)
-        {
             std::cout << "Has normals and texcords" << std::endl;
+            std::cout << "Number of vertices: " << vertices.size()/11 << std::endl;
             commomLayout = BufferLayout({ {ShaderDataType::Float3, "position"}, {ShaderDataType::Float3, "normals"}, {ShaderDataType::Float2, "tcoords"}, {ShaderDataType::Float3, "color"} });
-        }
-        else if (hasNormals && !hasTexcords)
-        {
-            std::cout << "Has normals but no texcords" << std::endl;
-            commomLayout = BufferLayout({ {ShaderDataType::Float3, "position"}, {ShaderDataType::Float3, "normals"}, {ShaderDataType::Float3, "color"} });
-        }
-        else if (!hasNormals && hasTexcords)
-        {
-            std::cout << "Has no normals but texcords" << std::endl;
-            commomLayout = BufferLayout({ {ShaderDataType::Float3, "position"}, {ShaderDataType::Float2, "tcoords"}, {ShaderDataType::Float3, "color"} });
-        }
-        else if (!hasNormals && !hasTexcords)
-        {
-            std::cout << "Has no normals and texcords" << std::endl;
-            commomLayout = BufferLayout({ {ShaderDataType::Float3, "position"}, {ShaderDataType::Float3, "color"} });
-        }
 
-        std::shared_ptr<IndexBuffer> IBO = std::make_shared<IndexBuffer>(indices.data(), indices.size());
+        std::shared_ptr<IndexBuffer> IBO = std::make_shared<IndexBuffer>(finalIndices.data(), finalIndices.size());
 
         
         std::shared_ptr<VertexBuffer> VBO = std::make_shared<VertexBuffer>(vertices.data(), vertices.size() * sizeof(vertices[0]));

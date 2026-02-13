@@ -37,6 +37,7 @@ void GLFWApplication::initializeOpenGL()
     glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
     glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
     glfwWindowHint(GLFW_DEPTH_BITS, 32);
+    glfwWindowHint(GLFW_RESIZABLE, GLFW_FALSE);
 
     m_window = glfwCreateWindow(WINDOW_WIDTH, WINDOW_HEIGHT, getName().c_str(), nullptr, nullptr);
     if (!m_window)

@@ -11,9 +11,23 @@ PerspectiveCamera::PerspectiveCamera(const Frustrum& frustrum, const glm::vec3& 
 
 void PerspectiveCamera::RecalculateMatrix()
 {
-	float aspectRatio = CameraFrustrum.width / CameraFrustrum.height;
+    float aspectRatio = CameraFrustrum.width / CameraFrustrum.height;
 
-	ProjectionMatrix = glm::perspective(glm::radians(CameraFrustrum.angle), aspectRatio, CameraFrustrum.near, CameraFrustrum.far);
-	ViewMatrix = glm::lookAt(Position, LookAt, UpVector);
-	ViewProjectionMatrix = ProjectionMatrix * ViewMatrix;
+    // Convert yaw to radians
+    float yawRad = glm::radians(Yaw);
+
+    // Calculate orbit position
+    Position.x = Distance * sin(yawRad);
+    Position.z = Distance * cos(yawRad);
+    Position.y = Height;
+
+    ProjectionMatrix = glm::perspective(
+        glm::radians(CameraFrustrum.angle),
+        aspectRatio,
+        CameraFrustrum.near,
+        CameraFrustrum.far
+    );
+
+    ViewMatrix = glm::lookAt(Position, LookAt, UpVector);
+    ViewProjectionMatrix = ProjectionMatrix * ViewMatrix;
 }

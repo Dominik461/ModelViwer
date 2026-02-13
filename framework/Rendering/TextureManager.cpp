@@ -46,6 +46,37 @@ bool TextureManager::LoadTexture2DRGBA(const std::string& name, const std::strin
     return true;
 }
 
+GLuint TextureManager::LoadModelTexture2DRGBA(const std::string& filepath, bool mipMap)
+{
+    int width, height, bpp;
+    auto data = this->LoadTextureImage(filepath, width, height, bpp, STBI_rgb_alpha);
+
+    if (!data)
+        return 0;
+
+    GLuint tex;
+    glGenTextures(1, &tex);
+    glBindTexture(GL_TEXTURE_2D, tex);
+
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8,
+        width, height, 0,
+        GL_RGBA, GL_UNSIGNED_BYTE, data);
+
+    if (mipMap)
+        glGenerateMipmap(GL_TEXTURE_2D);
+
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER,
+        mipMap ? GL_LINEAR_MIPMAP_LINEAR : GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+
+    FreeTextureImage(data);
+
+    return tex;  // return OpenGL texture ID
+}
+
+
 bool TextureManager::LoadCubeMapRGBA(const std::string& name, const std::string& filePath, GLuint unit, bool mipMap)
 {
     int width, height, bpp;

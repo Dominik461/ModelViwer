@@ -4,10 +4,12 @@
 #include "PerspectiveCamera.h"
 #include "RenderCommands.h"
 #include "Shader.h"
-#include "ShaderDefenitionsTunnel.h"
+#include "ShaderDefenitionsModel.h"
 #include "ShaderSkyBox.h"
 #include "glm/glm.hpp"
 #include "drawcall.h"
+#include "material.h"
+#include "pointlight.h"
 #include <iostream>
 #include <iomanip>
 
@@ -19,20 +21,20 @@ private:
 	const float m_AMBIENT_STRENGTH = 0.75;
 	const float m_SPECULAR_STRENGTH = 1.0;
 
-	std::shared_ptr<Shader> m_tunnelShader;
+	std::shared_ptr<Shader> m_modelShader;
 	std::shared_ptr<Shader> m_skyboxShader;
 
 	void setupShaders();
 
 	void renderModel(std::shared_ptr<VertexArray> modelData);
 	void renderSkybox(std::shared_ptr<VertexArray> skyboxData);
-	void uploadCommonUniforms(glm::mat4 viewProjectionMatrix, glm::vec3 lightPos, glm::vec3 viewPos, float lightMix, glm::mat4 modelMat, glm::mat4 skyboxMat);
+	void uploadCommonUniforms(glm::mat4 viewProjectionMatrix, PointLight light, glm::vec3 viewPos, glm::mat4 modelMat, glm::mat4 skyboxMat);
 
 public:
 	Renderer();
 
 	unsigned init();
-	void draw(glm::mat4 viewProjectionMat, glm::vec3 cameraPos, glm::vec3 lightPos, float lightMix, std::shared_ptr<VertexArray> modelData, glm::mat4 modelMat, std::shared_ptr<VertexArray> skyboxData, glm::mat4 skyboxMat);
+	void draw(glm::mat4 viewProjectionMat, glm::vec3 cameraPos, PointLight light, std::shared_ptr<VertexArray> modelData, glm::mat4 modelMat, std::vector<Material> modelMaterials, std::vector<DrawCall> modelDrawCalls, std::shared_ptr<VertexArray> skyboxData, glm::mat4 skyboxMat);
 	unsigned shutdown();
 };
 

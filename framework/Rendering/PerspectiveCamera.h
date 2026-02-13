@@ -2,6 +2,7 @@
 #define PERSPECTIVECAMERA_H_
 
 #include "Camera.h"
+#include <iostream>
 
 #include <array>
 
@@ -45,6 +46,41 @@ public:
         this->UpVector = upVector; this->RecalculateMatrix();
     }
 
+    void SetYaw(float yaw)
+    {
+        Yaw = yaw;
+        RecalculateMatrix();
+    }
+
+    void AddYaw(float delta)
+    {
+        Yaw += delta;
+        RecalculateMatrix();
+    }
+
+    void SetDistance(float distance)
+    {
+        Distance = glm::max(distance, 0.1f); // prevent flipping
+        RecalculateMatrix();
+    }
+
+    void AddDistance(float delta)
+    {
+        Distance = glm::max(Distance + delta, 0.1f);
+        RecalculateMatrix();
+    }
+
+    void SetHeight(float height)
+    {
+        Height = height;
+        RecalculateMatrix();
+    }
+
+    void AddHeight(float delta)
+    {
+        Height += delta;
+        RecalculateMatrix();
+    }
 protected:
     void RecalculateMatrix();
 
@@ -52,6 +88,11 @@ protected:
     glm::vec3 LookAt;
     glm::vec3 UpVector;
     Frustrum CameraFrustrum;
+
+private:
+    float Yaw = 0.0f;        // rotation around Y axis (degrees)
+    float Distance = 10.0f; // radius from origin
+    float Height = 0.0f;     // Y position
 };
 
 #endif // PERSPECTIVECAMERA_H_
