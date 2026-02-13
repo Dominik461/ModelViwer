@@ -52,3 +52,26 @@ add_custom_command(
   ${CMAKE_CURRENT_SOURCE_DIR}/resources/textures/top.jpg
   ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/resources/textures/top.jpg
 )
+
+
+
+add_custom_command(
+  TARGET ModelViewer POST_BUILD
+  COMMAND ${CMAKE_COMMAND} -E copy
+  ${CMAKE_CURRENT_SOURCE_DIR}/resources/models/Billy/Billy.png
+  ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/resources/models/Billy/Billy.png
+)
+
+add_custom_command(
+  TARGET ModelViewer POST_BUILD
+  COMMAND ${CMAKE_COMMAND} -E copy
+  ${CMAKE_CURRENT_SOURCE_DIR}/resources/models/Billy/Billy.obj
+  ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/resources/models/Billy/Billy.obj
+)
+
+add_custom_command(
+  TARGET ModelViewer POST_BUILD
+  COMMAND ${CMAKE_COMMAND} -E copy
+  ${CMAKE_CURRENT_SOURCE_DIR}/resources/models/Billy/Billy.mtl
+  ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/resources/models/Billy/Billy.mtl
+)

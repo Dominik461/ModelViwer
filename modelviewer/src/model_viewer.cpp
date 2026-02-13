@@ -11,7 +11,7 @@ tinyobj::ObjReader reader;
 
 ModelViewer::ModelViewer()
     : GLFWApplication("Model Viewer", "1.0", 1080, 1920), m_window(nullptr),
-    m_modelData(nullptr)
+    m_modelData(nullptr), m_sunData(nullptr), m_skyboxData(nullptr)
 {}
 
 ModelViewer::~ModelViewer()
@@ -43,7 +43,7 @@ unsigned ModelViewer::init()
 
     createPointLight();
     TextureManager::GetInstance()->LoadCubeMapArrayRGBA("Skybox", std::string(TEXTURES_DIR), skyboxFiles, 0);
-    loadCustomModel("F:\\Projects\\ModelViwer\\modelviewer\\resources\\models\\Hungarian Horntail");
+    scaleSkybox();
 
     return 0;
 }
@@ -85,7 +85,15 @@ unsigned ModelViewer::run()
             }
         }
 
+        ImGui::Text("Model Rotation:");
+        ImGui::Text("Q & E: -/+ Pitch");
+        ImGui::Text("A & S: -/+ Yaw");
+        ImGui::Text("Z & X: -/+ Roll");
+        ImGui::SliderFloat("Model rotation speed", &model_rotation_speed, 10.0f, 255.0f);
+
         ImGui::Text("Camera controls");
+        ImGui::Text("N & M: Rotate around center");
+        ImGui::SliderFloat("Camera rotation speed", &cam_rotation_speed, 10.0f, 1024.0f);
         if (ImGui::SliderFloat("Camera height", &camPosY, -3500.0f, 3500.0f))
         {
             m_camera.SetHeight(camPosY);
@@ -96,11 +104,13 @@ unsigned ModelViewer::run()
         }
 
         ImGui::Text("Light controls");
+        ImGui::Text("Left & Right: Rotate around center");
+        ImGui::SliderFloat("Light rotation speed", &light.AngularSpeed, 10.0f, 2048.0f);
         if (ImGui::SliderFloat("Light height", &light.Height, -3500.0f, 3500.0f))
         {
             UpdateLight();
         }
-        if(ImGui::SliderFloat("Light distance", &light.Radius, 10.0f, 5000.0f))
+        if(ImGui::SliderFloat("Light distance", &light.Radius, 0.0f, 5000.0f))
         {
             UpdateLight();
         }
@@ -108,21 +118,17 @@ unsigned ModelViewer::run()
         {
             UpdateLight();
         }
+        ImGui::SliderInt("Light radius", &light.LightRadius, 1.0f, 10.0f);
 
         ImGui::Text("Shader controls");
-        ImGui::Text("Set light angle");
-        ImGui::Text("Set light angle");
-        ImGui::Text("Set light angle");
+        ImGui::Checkbox("Check normals", &checkNormals);
         ImGui::End();
 
         ImGui::Render();
 
         m_cam_pos.y = camPosY;
-        
 
-        scaleSkybox();
-
-        m_renderer->draw(m_camera.GetViewProjectionMatrix(), m_camera.GetPosition(), light, m_modelData, modelMatrix, m_materials, modelDrawCalls, m_skyboxData, skyboxMatrix);
+        m_renderer->draw(m_camera.GetViewProjectionMatrix(), m_camera.GetPosition(), light, m_modelData, modelMatrix, m_materials, modelDrawCalls, m_skyboxData, skyboxMatrix, m_sunData, sunMatrix, isCelShadingEnabled, celShadingSteps, checkNormals);
 
         ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
 
@@ -182,13 +188,28 @@ void ModelViewer::loadSkybox()
     m_skyboxData->SetIndexBuffer(IBOskybox);
     m_skyboxData->AddNormalVertexBuffer(VBOskybox);
 
-    scaleSkybox();
+
+    auto& sunData = GeometricTools::CreateSphere();
+
+    auto& verticesDataSun = sunData.first;
+    auto& indicesDataSun = sunData.second;
+
+    std::shared_ptr<IndexBuffer> IBOsun = std::make_shared<IndexBuffer>(indicesDataSun.data(), indicesDataSun.size());
+
+    BufferLayout sunLayout = BufferLayout({ {ShaderDataType::Float3, "position"}, {ShaderDataType::Float3, "normals"}, {ShaderDataType::Float2, "tcoords"}, {ShaderDataType::Float3, "color"} });
+    std::shared_ptr<VertexBuffer> VBOsun = std::make_shared<VertexBuffer>(verticesDataSun.data(), verticesDataSun.size() * sizeof(verticesDataSun[0]));
+    VBOsun->SetLayout(sunLayout);
+
+    m_sunData = std::make_shared<VertexArray>();
+    m_sunData->Bind();
+    m_sunData->SetIndexBuffer(IBOsun);
+    m_sunData->AddNormalVertexBuffer(VBOsun);
 }
 
 void ModelViewer::scaleSkybox()
 {
     glm::vec3 rotationVec = glm::vec3(0.0f, 1.0f, 0.0f);
-    float scaleVal = camDistance + 10000.0f;
+    float scaleVal = 17500.0f;
     glm::vec3 scaleVec = glm::vec3(scaleVal);
     skyboxMatrix = MatrixOperations::getTransformedMatrix(scaleVec, rotationVec, 0, modelPos);
 }
@@ -205,53 +226,53 @@ void ModelViewer::keyCallback(GLFWwindow* window, int key, int scancode, int act
     // Left
     if (key == GLFW_KEY_Q)
     {
-        viewer->modelAngleX -= viewer->ROTATION_SPEED;
+        viewer->modelAngleX -= viewer->model_rotation_speed * viewer->m_deltaTime;
     }
     // Right
     if (key == GLFW_KEY_W)
     {
-        viewer->modelAngleX += viewer->ROTATION_SPEED;
+        viewer->modelAngleX += viewer->model_rotation_speed * viewer->m_deltaTime;
     }
     // Up
     if (key == GLFW_KEY_A)
     {
-        viewer->modelAngleY -= viewer->ROTATION_SPEED;
+        viewer->modelAngleY -= viewer->model_rotation_speed * viewer->m_deltaTime;
     }
     // Down
     if (key == GLFW_KEY_S)
     {
-        viewer->modelAngleY += viewer->ROTATION_SPEED;
+        viewer->modelAngleY += viewer->model_rotation_speed * viewer->m_deltaTime;
     }
     // Up
     if (key == GLFW_KEY_Z)
     {
-        viewer->modelAngleZ -= viewer->ROTATION_SPEED;
+        viewer->modelAngleZ -= viewer->model_rotation_speed * viewer->m_deltaTime;
     }
     // Down
     if (key == GLFW_KEY_X)
     {
-        viewer->modelAngleZ += viewer->ROTATION_SPEED;
+        viewer->modelAngleZ += viewer->model_rotation_speed * viewer->m_deltaTime;
     }
     // Up
     if (key == GLFW_KEY_N)
     {
-        viewer->m_camera.AddYaw(-1000.f * viewer->m_deltaTime);
+        viewer->m_camera.AddYaw(viewer->cam_rotation_speed * viewer->m_deltaTime);
     }
     // Down
     if (key == GLFW_KEY_M)
     {
-        viewer->m_camera.AddYaw(1000.f * viewer->m_deltaTime);
+        viewer->m_camera.AddYaw(viewer->cam_rotation_speed * viewer->m_deltaTime);
     }
     // Up
     if (key == GLFW_KEY_LEFT)
     {
-        viewer->light.Angle -= viewer->ROTATION_SPEED;
+        viewer->light.Angle -= viewer->light.AngularSpeed * viewer->m_deltaTime;
         viewer->UpdateLight();
     }
     // Down
     if (key == GLFW_KEY_RIGHT)
     {
-        viewer->light.Angle += viewer->ROTATION_SPEED;
+        viewer->light.Angle += viewer->light.AngularSpeed * viewer->m_deltaTime;
         viewer->UpdateLight();
     }
 
@@ -272,13 +293,16 @@ void ModelViewer::rotateModel()
 
 void ModelViewer::UpdateLight()
 {
-    light.Angle += light.AngularSpeed * m_deltaTime;
-
     float rad = glm::radians(light.Angle);
 
     light.Position.x = light.Radius * sin(rad);
     light.Position.z = light.Radius * cos(rad);
     light.Position.y = light.Height;
+
+    glm::vec3 rotationVec = glm::vec3(0.0f, 1.0f, 0.0f);
+    float scaleVal = 5.f;
+    glm::vec3 scaleVec = glm::vec3(scaleVal);
+    sunMatrix = MatrixOperations::getTransformedMatrix(scaleVec, rotationVec, 0, light.Position);
 }
 
 void ModelViewer::loadCustomModel(std::string path)
@@ -453,7 +477,6 @@ void ModelViewer::loadCustomModel(std::string path)
         m_modelData->AddNormalVertexBuffer(VBO);
     }
 }
-
 
 std::string ModelViewer::findObiFile(std::string path)
 {

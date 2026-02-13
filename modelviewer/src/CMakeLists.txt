@@ -2,7 +2,7 @@ add_library(ModelViewerLib
      
     renderer.cpp renderer.h
     model_viewer.cpp model_viewer.h
- "util.h"  "drawcall.h" "material.h" "pointlight.h")
+ "util.h"  "drawcall.h" "material.h" "pointlight.h" "shaders/ShaderSun.h")
 
 # Include directories for the library
 target_include_directories(ModelViewerLib PUBLIC

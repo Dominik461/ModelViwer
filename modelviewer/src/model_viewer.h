@@ -43,6 +43,7 @@ private:
 	glm::vec3 m_cam_pos = glm::vec3(0.0f, camPosY, camDistance);
 
 
+	std::shared_ptr<VertexArray> m_sunData;
 	std::shared_ptr<VertexArray> m_modelData;
     std::vector<DrawCall> modelDrawCalls;
 	std::shared_ptr<VertexArray> m_skyboxData;
@@ -56,12 +57,17 @@ private:
 	float modelAngleZ = 0.0f;
 
 	const float ROTATION_SPEED = 0.1f;
+	float cam_rotation_speed = 100.0f;
+	float model_rotation_speed = 100.0f;
 	float sensitvity= 50.0f;
 	bool rotateZ = false;
 	glm::mat4 modelMatrix = glm::mat4(1.0f);
 	glm::mat4 skyboxMatrix = glm::mat4(1.0f);
+	glm::mat4 sunMatrix = glm::mat4(1.0f);
 
-	bool loading = false;
+	bool checkNormals = false;
+	bool isCelShadingEnabled = false;
+	int celShadingSteps = 4;
 	
 	PointLight light;
 

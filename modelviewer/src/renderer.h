@@ -5,6 +5,7 @@
 #include "RenderCommands.h"
 #include "Shader.h"
 #include "ShaderDefenitionsModel.h"
+#include "ShaderSun.h"
 #include "ShaderSkyBox.h"
 #include "glm/glm.hpp"
 #include "drawcall.h"
@@ -23,18 +24,18 @@ private:
 
 	std::shared_ptr<Shader> m_modelShader;
 	std::shared_ptr<Shader> m_skyboxShader;
+	std::shared_ptr<Shader> m_sunShader;
 
 	void setupShaders();
 
-	void renderModel(std::shared_ptr<VertexArray> modelData);
 	void renderSkybox(std::shared_ptr<VertexArray> skyboxData);
-	void uploadCommonUniforms(glm::mat4 viewProjectionMatrix, PointLight light, glm::vec3 viewPos, glm::mat4 modelMat, glm::mat4 skyboxMat);
+	void uploadCommonUniforms(glm::mat4 viewProjectionMatrix, PointLight light, glm::vec3 viewPos, glm::mat4 modelMat, glm::mat4 skyboxMat, glm::mat4 sunMat, bool useCelShading, int celSteps, bool useDebugNormals);
 
 public:
 	Renderer();
 
 	unsigned init();
-	void draw(glm::mat4 viewProjectionMat, glm::vec3 cameraPos, PointLight light, std::shared_ptr<VertexArray> modelData, glm::mat4 modelMat, std::vector<Material> modelMaterials, std::vector<DrawCall> modelDrawCalls, std::shared_ptr<VertexArray> skyboxData, glm::mat4 skyboxMat);
+	void draw(glm::mat4 viewProjectionMat, glm::vec3 cameraPos, PointLight light, std::shared_ptr<VertexArray> modelData, glm::mat4 modelMat, std::vector<Material> modelMaterials, std::vector<DrawCall> modelDrawCalls, std::shared_ptr<VertexArray> skyboxData, glm::mat4 skyboxMat, std::shared_ptr<VertexArray>  sunData, glm::mat4 sunMat, bool useCelShading, int celSteps, bool useDebugNormals);
 	unsigned shutdown();
 };
 

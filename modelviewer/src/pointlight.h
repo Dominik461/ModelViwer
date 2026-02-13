@@ -12,6 +12,7 @@ struct PointLight
     float Radius = 200.0f;
     float Height = 0.0f;
     float AngularSpeed = 45.0f;  // degrees per second
+    int LightRadius = 5;  // degrees per second
 };
 
 #endif // !POINTLIGHT_H_

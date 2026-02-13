@@ -40,8 +40,8 @@ const std::string MODEL_FRAGMENT_SHADER_SRC = R"(
     uniform float u_LightRange;
     uniform vec3 u_ViewPosition;
     uniform float u_LightMix;
-    uniform float u_UseCelShading;
-    uniform float u_UsePixelShading;
+
+    uniform bool u_UseDebug;
 
     uniform sampler2D u_DiffuseTex;
     uniform bool u_HasTexture;
@@ -54,50 +54,49 @@ const std::string MODEL_FRAGMENT_SHADER_SRC = R"(
     out vec4 FragColor;
 
     void main() {
-        vec3 baseColor;
-        vec3 finalColor;
-        vec3 lightColor = u_LightColor;
-
-        if (u_HasTexture)
-            baseColor = texture(u_DiffuseTex, vertextCoords).rgb;
-        else
-            baseColor = u_MaterialDiffuse; // fallback to MTL diffuse
-
-        if (u_UseCelShading > 0.5)
+        if(u_UseDebug)
         {
-        }
-        else if (u_UsePixelShading > 0.5)
-        {
+            FragColor = vec4(normalize(vertexNormal) * 0.5 + 0.5, 1.0);
         }
         else
         {
+            vec3 baseColor;
+            vec3 finalColor;
+            vec3 lightColor = u_LightColor;
+
+            if (u_HasTexture)
+                baseColor = texture(u_DiffuseTex, vertextCoords).rgb;
+            else
+                baseColor = u_MaterialDiffuse; // fallback to MTL diffuse
+
+
             vec3 ambient = u_MaterialAmbient * lightColor;
             vec3 norm = normalize(vertexNormal);
             vec3 lightDir = normalize(u_LightPos - vertexPos);
 
-            float cosAngle = max(dot(norm, lightDir), 0.0f);
-            vec3 diffuse = cosAngle * lightColor;
-
             vec3 viewDir = normalize(u_ViewPosition - vertexPos);
-            vec3 reflectDir = reflect(-lightDir, norm);
+            vec3 halfwayDir = normalize(lightDir + viewDir);
 
-            float spec = pow(max(dot(viewDir, reflectDir), 0.0f), u_MaterialShininess);
+            float cosAngle = max(dot(norm, lightDir), 0.0f);
+
+            float spec = pow(max(dot(viewDir, halfwayDir), 0.0f), u_MaterialShininess);
+            
+
+            vec3 diffuse = cosAngle * lightColor;
             vec3 specular = spec * u_MaterialSpecular;
-
             // Attenuation
             float distance = length(u_LightPos - vertexPos);
 
             float attenuation = 1.0 - clamp(distance / u_LightRange, 0.0, 1.0);
-            attenuation *= attenuation; // smooth falloff
+            attenuation = sqrt(attenuation); 
 
             diffuse  *= attenuation;
             specular *= attenuation;
 
-            finalColor = (ambient + diffuse + specular) * baseColor;
+            finalColor = (ambient + (diffuse + specular) * attenuation) * baseColor;
+
+            FragColor = vec4(finalColor, 1.0);
         }
-
-
-        FragColor = vec4(finalColor, 1.0);
     }
 )";
 
