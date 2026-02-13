@@ -37,8 +37,7 @@ const std::string MODEL_FRAGMENT_SHADER_SRC = R"(
 
     uniform vec3 u_LightPos;
     uniform vec3 u_LightColor;
-    uniform float u_AmbientStrength;
-    uniform float u_SpecularStrength;
+    uniform float u_LightRange;
     uniform vec3 u_ViewPosition;
     uniform float u_LightMix;
     uniform float u_UseCelShading;
@@ -47,6 +46,7 @@ const std::string MODEL_FRAGMENT_SHADER_SRC = R"(
     uniform sampler2D u_DiffuseTex;
     uniform bool u_HasTexture;
 
+    uniform vec3 u_MaterialAmbient;
     uniform vec3 u_MaterialDiffuse;
     uniform vec3 u_MaterialSpecular;
     uniform float u_MaterialShininess;
@@ -71,7 +71,7 @@ const std::string MODEL_FRAGMENT_SHADER_SRC = R"(
         }
         else
         {
-            vec3 ambient = u_AmbientStrength * lightColor;
+            vec3 ambient = u_MaterialAmbient * lightColor;
             vec3 norm = normalize(vertexNormal);
             vec3 lightDir = normalize(u_LightPos - vertexPos);
 
@@ -82,7 +82,16 @@ const std::string MODEL_FRAGMENT_SHADER_SRC = R"(
             vec3 reflectDir = reflect(-lightDir, norm);
 
             float spec = pow(max(dot(viewDir, reflectDir), 0.0f), u_MaterialShininess);
-            vec3 specular = u_SpecularStrength * spec * u_MaterialSpecular;
+            vec3 specular = spec * u_MaterialSpecular;
+
+            // Attenuation
+            float distance = length(u_LightPos - vertexPos);
+
+            float attenuation = 1.0 - clamp(distance / u_LightRange, 0.0, 1.0);
+            attenuation *= attenuation; // smooth falloff
+
+            diffuse  *= attenuation;
+            specular *= attenuation;
 
             finalColor = (ambient + diffuse + specular) * baseColor;
         }

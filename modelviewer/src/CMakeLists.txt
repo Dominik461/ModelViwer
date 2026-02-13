@@ -30,6 +30,8 @@ target_link_libraries(ModelViewerLib
 )
 
 target_compile_definitions(ModelViewerLib PRIVATE
-  TEXTURES_DIR="${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/resources/textures/")
+  TEXTURES_DIR="${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/resources/textures/"
+  MODEL_DIR="${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/resources/models/"
+)
 
 target_compile_definitions(ModelViewerLib PRIVATE STB_IMAGE_IMPLEMENTATION)

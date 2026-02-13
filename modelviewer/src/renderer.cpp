@@ -45,8 +45,9 @@ void Renderer::draw(glm::mat4 viewProjectionMat, glm::vec3 cameraPos, PointLight
 		Material& mat = modelMaterials[dc.materialID];
 
 		m_modelShader->UploadUniformFloat3("u_MaterialDiffuse", mat.diffuse);
-		m_modelShader->UploadUniformFloat3("u_MaterialDiffuse", mat.diffuse);
-		m_modelShader->UploadUniformFloat3("u_MaterialDiffuse", mat.diffuse);
+		m_modelShader->UploadUniformFloat3("u_MaterialSpecular", mat.specular);
+		m_modelShader->UploadUniformFloat1("u_MaterialShininess", mat.shininess);	
+		m_modelShader->UploadUniformFloat3("u_MaterialAmbient", mat.ambient);
 
 		if (mat.diffuseTex != 0)
 		{
@@ -106,8 +107,7 @@ void Renderer::uploadCommonUniforms(glm::mat4 viewProjectionMatrix, PointLight l
 	m_modelShader->UploadUniformMat4("u_ViewProjection", viewProjectionMatrix);
 	m_modelShader->UploadUniformFloat3("u_LightColor", light.Color);
 	m_modelShader->UploadUniformFloat3("u_LightPos", light.Position);
-	m_modelShader->UploadUniformFloat1("u_AmbientStrength", m_AMBIENT_STRENGTH);
-	m_modelShader->UploadUniformFloat1("u_SpecularStrength", m_SPECULAR_STRENGTH);
+	m_modelShader->UploadUniformFloat1("u_LightRange", light.Radius + 50.0f);
 	m_modelShader->UploadUniformFloat3("u_ViewPosition", viewPos);
 	m_modelShader->UploadUniformMat4("u_Model", modelMat);
 	m_modelShader->Unbind();
