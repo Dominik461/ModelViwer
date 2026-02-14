@@ -11,7 +11,8 @@ tinyobj::ObjReader reader;
 
 ModelViewer::ModelViewer()
     : GLFWApplication("Model Viewer", "1.0", 1080, 1920), m_window(nullptr),
-    m_modelData(nullptr), m_sunData(nullptr), m_skyboxData(nullptr)
+    m_modelData(nullptr), m_sunData(nullptr), m_skyboxData(nullptr), m_deltaTime(0),
+    m_lastFrameTime(0)
 {}
 
 ModelViewer::~ModelViewer()
