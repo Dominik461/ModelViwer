@@ -34,7 +34,7 @@ add_subdirectory(modelviewer/src/shaders)
 add_library(stb INTERFACE)
 target_include_directories(stb INTERFACE external/stb)
 
-set(IMGUI_DIR ${CMAKE_SOURCE_DIR}/external/imgui)
+set(IMGUI_DIR ${CMAKE_SOURCE_DIR}/external/imgui_local/imgui)
 
 add_library(imgui
     ${IMGUI_DIR}/imgui.cpp
